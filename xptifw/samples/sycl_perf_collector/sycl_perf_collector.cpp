@@ -47,6 +47,7 @@ constexpr const char *GStreamL0 = "sycl.experimental.level_zero.call";
 constexpr const char *GStreamCuda = "sycl.experimental.cuda.call";
 constexpr const char *GStreamBuffer = "sycl.experimental.buffer";
 constexpr const char *GStreamImage = "sycl.experimental.image";
+constexpr const char *GStreamCI = "sycl.ci";
 
 // Scoped measurement object used in the callback handlers
 class MeasureHandlers {
@@ -311,6 +312,7 @@ XPTI_CALLBACK_API void xptiTraceInit(unsigned int major_version,
       GAllStreams.add(GStreamMemory);
       // GAllStreams.add(GStreamBuffer);
       GAllStreams.add(GStreamImage);
+      GAllStreams.add(GStreamCI);
     }
 
     // Capture the user input on the first calls to ignore; some calls,
@@ -436,10 +438,10 @@ XPTI_CALLBACK_API void xptiTraceInit(unsigned int major_version,
     // Handles SelfNotification events
     xptiRegisterCallback(StreamID,
                          (uint16_t)xpti::trace_point_type_t::function_begin,
-                         syclPiCallback);
+                         syclURCallback);
     xptiRegisterCallback(StreamID,
                          (uint16_t)xpti::trace_point_type_t::function_end,
-                         syclPiCallback);
+                         syclURCallback);
   } else if (std::string(GStreamMemory) == stream_name && Check) {
     auto StreamID = xptiRegisterStream(stream_name);
     xptiRegisterCallback(StreamID,
@@ -461,6 +463,14 @@ XPTI_CALLBACK_API void xptiTraceInit(unsigned int major_version,
                          (uint16_t)xpti::trace_point_type_t::mem_release_end,
                          syclMemCallback);
   } else if (std::string(GStreamPI) == stream_name && Check) {
+    auto StreamID = xptiRegisterStream(stream_name);
+    xptiRegisterCallback(StreamID,
+                         (uint16_t)xpti::trace_point_type_t::function_begin,
+                         syclURCallback);
+    xptiRegisterCallback(StreamID,
+                         (uint16_t)xpti::trace_point_type_t::function_end,
+                         syclURCallback);
+  } else if (std::string(GStreamCI) == stream_name && Check) {
     auto StreamID = xptiRegisterStream(stream_name);
     xptiRegisterCallback(StreamID,
                          (uint16_t)xpti::trace_point_type_t::function_begin,
