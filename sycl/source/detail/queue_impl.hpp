@@ -20,6 +20,7 @@
 #include <detail/scheduler/scheduler.hpp>
 #include <detail/stream_impl.hpp>
 #include <detail/thread_pool.hpp>
+#include <detail/xpti_registry.hpp>
 #include <sycl/context.hpp>
 #include <sycl/detail/assert_happened.hpp>
 #include <sycl/detail/ur.hpp>
@@ -100,7 +101,7 @@ public:
   /// \param PropList is a list of properties to use for queue construction.
   queue_impl(const DeviceImplPtr &Device, const async_handler &AsyncHandler,
              const property_list &PropList)
-      : queue_impl(Device, getDefaultOrNew(Device), AsyncHandler, PropList) {};
+      : queue_impl(Device, getDefaultOrNew(Device), AsyncHandler, PropList){};
 
   /// Constructs a SYCL queue with an async_handler and property_list provided
   /// form a device and a context.
@@ -317,6 +318,7 @@ public:
   /// this queue. Overrides normal batching behaviour. Note that this is merely
   /// a hint and not a guarantee.
   void flush() {
+    XPTI_CICD_TRACE();
     if (MGraph.lock()) {
       throw sycl::exception(make_error_code(errc::invalid),
                             "flush cannot be called for a queue which is "
@@ -345,6 +347,7 @@ public:
                const std::shared_ptr<queue_impl> &SecondQueue,
                const detail::code_location &Loc, bool IsTopCodeLoc,
                const SubmitPostProcessF *PostProcess = nullptr) {
+    XPTI_CICD_TRACE();
     event ResEvent;
     SubmissionInfo SI{};
     SI.SecondaryQueue() = SecondQueue;
@@ -366,6 +369,7 @@ public:
                           const std::shared_ptr<queue_impl> &Self,
                           const SubmissionInfo &SubmitInfo,
                           const detail::code_location &Loc, bool IsTopCodeLoc) {
+    XPTI_CICD_TRACE();
     if (SubmitInfo.SecondaryQueue()) {
       event ResEvent;
       const std::shared_ptr<queue_impl> SecondQueue =
@@ -392,6 +396,7 @@ public:
                             const SubmissionInfo &SubmitInfo,
                             const detail::code_location &Loc,
                             bool IsTopCodeLoc) {
+    XPTI_CICD_TRACE();
     if (SubmitInfo.SecondaryQueue()) {
       const std::shared_ptr<queue_impl> SecondQueue =
           SubmitInfo.SecondaryQueue();
@@ -693,6 +698,7 @@ public:
 
   void setCommandGraph(
       std::shared_ptr<ext::oneapi::experimental::detail::graph_impl> Graph) {
+    XPTI_CICD_TRACE();
     std::lock_guard<std::mutex> Lock(MMutex);
     MGraph = Graph;
     MExtGraphDeps.reset();
@@ -769,6 +775,7 @@ protected:
   // template is needed for proper unit testing
   template <typename HandlerType = handler>
   void finalizeHandler(HandlerType &Handler, event &EventRet) {
+    XPTI_CICD_TRACE();
     if (MIsInorder) {
       // Accessing and changing of an event isn't atomic operation.
       // Hence, here is the lock for thread-safety.

@@ -9,6 +9,7 @@
 #include <detail/backend_impl.hpp>
 #include <detail/event_impl.hpp>
 #include <detail/queue_impl.hpp>
+#include <detail/xpti_registry.hpp>
 #include <sycl/detail/common.hpp>
 #include <sycl/event.hpp>
 #include <sycl/exception_list.hpp>
@@ -199,31 +200,37 @@ event queue::mem_advise(const void *Ptr, size_t Length, int Advice,
 /// TODO: Unused. Remove these when ABI-break window is open.
 event queue::submit_impl(std::function<void(handler &)> CGH,
                          const detail::code_location &CodeLoc) {
+  XPTI_CICD_TRACE();
   return submit_with_event_impl(std::move(CGH), {}, CodeLoc, true);
 }
 event queue::submit_impl(std::function<void(handler &)> CGH,
                          const detail::code_location &CodeLoc,
                          bool IsTopCodeLoc) {
+  XPTI_CICD_TRACE();
   return submit_with_event_impl(std::move(CGH), {}, CodeLoc, IsTopCodeLoc);
 }
 
 event queue::submit_impl(std::function<void(handler &)> CGH, queue SecondQueue,
                          const detail::code_location &CodeLoc) {
+  XPTI_CICD_TRACE();
   return impl->submit(CGH, impl, SecondQueue.impl, CodeLoc, true);
 }
 event queue::submit_impl(std::function<void(handler &)> CGH, queue SecondQueue,
                          const detail::code_location &CodeLoc,
                          bool IsTopCodeLoc) {
+  XPTI_CICD_TRACE();
   return impl->submit(CGH, impl, SecondQueue.impl, CodeLoc, IsTopCodeLoc);
 }
 
 void queue::submit_without_event_impl(std::function<void(handler &)> CGH,
                                       const detail::code_location &CodeLoc) {
+  XPTI_CICD_TRACE();
   submit_without_event_impl(std::move(CGH), {}, CodeLoc, true);
 }
 void queue::submit_without_event_impl(std::function<void(handler &)> CGH,
                                       const detail::code_location &CodeLoc,
                                       bool IsTopCodeLoc) {
+  XPTI_CICD_TRACE();
   submit_without_event_impl(std::move(CGH), {}, CodeLoc, IsTopCodeLoc);
 }
 

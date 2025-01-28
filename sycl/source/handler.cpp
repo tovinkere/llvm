@@ -24,6 +24,7 @@
 #include <detail/scheduler/scheduler.hpp>
 #include <detail/ur_info_code.hpp>
 #include <detail/usm/usm_impl.hpp>
+#include <detail/xpti_registry.hpp>
 #include <sycl/detail/common.hpp>
 #include <sycl/detail/helpers.hpp>
 #include <sycl/detail/kernel_desc.hpp>
@@ -152,6 +153,7 @@ void handler::setHandlerKernelBundle(kernel Kernel) {
 }
 
 event handler::finalize() {
+  XPTI_CICD_TRACE();
   // This block of code is needed only for reduction implementation.
   // It is harmless (does nothing) for everything else.
   if (MIsFinalized)

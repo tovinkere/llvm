@@ -238,6 +238,7 @@ event queue_impl::mem_advise(const std::shared_ptr<detail::queue_impl> &Self,
                              ur_usm_advice_flags_t Advice,
                              const std::vector<event> &DepEvents,
                              bool CallerNeedsEvent) {
+  XPTI_CICD_TRACE();
   return submitMemOpHelper(
       Self, DepEvents, CallerNeedsEvent,
       [&](handler &CGH) { CGH.mem_advise(Ptr, Length, Advice); },
@@ -249,6 +250,7 @@ event queue_impl::memcpyToDeviceGlobal(
     const std::shared_ptr<detail::queue_impl> &Self, void *DeviceGlobalPtr,
     const void *Src, bool IsDeviceImageScope, size_t NumBytes, size_t Offset,
     const std::vector<event> &DepEvents, bool CallerNeedsEvent) {
+  XPTI_CICD_TRACE();
   return submitMemOpHelper(
       Self, DepEvents, CallerNeedsEvent,
       [&](handler &CGH) {
@@ -265,6 +267,7 @@ event queue_impl::memcpyFromDeviceGlobal(
     const std::shared_ptr<detail::queue_impl> &Self, void *Dest,
     const void *DeviceGlobalPtr, bool IsDeviceImageScope, size_t NumBytes,
     size_t Offset, const std::vector<event> &DepEvents, bool CallerNeedsEvent) {
+  XPTI_CICD_TRACE();
   return submitMemOpHelper(
       Self, DepEvents, CallerNeedsEvent,
       [&](handler &CGH) {
@@ -278,6 +281,7 @@ event queue_impl::memcpyFromDeviceGlobal(
 }
 
 sycl::detail::optional<event> queue_impl::getLastEvent() {
+  XPTI_CICD_TRACE();
   {
     // The external event is required to finish last if set, so it is considered
     // the last event if present.
@@ -357,6 +361,7 @@ event queue_impl::submit_impl(const detail::type_erased_cgfo_ty &CGF,
                               const detail::code_location &Loc,
                               bool IsTopCodeLoc,
                               const SubmissionInfo &SubmitInfo) {
+  XPTI_CICD_TRACE();
   handler Handler(Self, PrimaryQueue, SecondaryQueue, CallerNeedsEvent);
   auto HandlerImpl = detail::getSyclObjImpl(Handler);
   Handler.saveCodeLoc(Loc, IsTopCodeLoc);
@@ -421,6 +426,7 @@ event queue_impl::submitWithHandler(const std::shared_ptr<queue_impl> &Self,
                                     const std::vector<event> &DepEvents,
                                     bool CallerNeedsEvent,
                                     HandlerFuncT HandlerFunc) {
+  XPTI_CICD_TRACE();
   SubmissionInfo SI{};
   auto L = [&](handler &CGH) {
     CGH.depends_on(DepEvents);
@@ -444,6 +450,7 @@ event queue_impl::submitMemOpHelper(const std::shared_ptr<queue_impl> &Self,
                                     HandlerFuncT HandlerFunc,
                                     MemOpFuncT MemOpFunc,
                                     MemOpArgTs... MemOpArgs) {
+  XPTI_CICD_TRACE();
   // We need to submit command and update the last event under same lock if we
   // have in-order queue.
   {
@@ -807,6 +814,7 @@ void queue_impl::revisitUnenqueuedCommandsState(
 void queue_impl::doUnenqueuedCommandCleanup(
     const std::shared_ptr<ext::oneapi::experimental::detail::graph_impl>
         &Graph) {
+  XPTI_CICD_TRACE();
   auto tryToCleanup = [](DependencyTrackingItems &Deps) {
     if (Deps.LastBarrier && Deps.LastBarrier->isEnqueued()) {
       Deps.LastBarrier = nullptr;

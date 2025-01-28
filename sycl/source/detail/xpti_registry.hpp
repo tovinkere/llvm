@@ -27,14 +27,33 @@ namespace detail {
 // We define a sycl stream name and this will be used by the instrumentation
 // framework
 inline constexpr const char *SYCL_STREAM_NAME = "sycl";
+// Stream used to emit details of SYCL runtime for catching regressions
+inline constexpr const char *SYCL_CICD_STREAM_NAME = "sycl.ci";
+// Stream name being used to notify about buffer objects.
+inline constexpr const char *SYCL_BUFFER_STREAM_NAME =
+    "sycl.experimental.buffer";
+// Stream name being used to notify about image objects.
+inline constexpr const char *SYCL_IMAGE_STREAM_NAME = "sycl.experimental.image";
+// Stream used to emit memory lifetime traces
 inline constexpr auto SYCL_MEM_ALLOC_STREAM_NAME =
     "sycl.experimental.mem_alloc";
 
 #ifdef XPTI_ENABLE_INSTRUMENTATION
+// Global variabls used to store the stream IDs for the SYCL Buffers
 extern uint8_t GBufferStreamID;
+// Global variable used to store the stream IDs for the SYCL Images
 extern uint8_t GImageStreamID;
+// Global variable used to store the stream IDs for the SYCL Memory Allocations
 extern uint8_t GMemAllocStreamID;
+// Global variable used to store the stream ID for SYCL constructs
+extern uint8_t GSyclStreamID;
+// Global variable used to store the stream IDs for the SYCL CICD
+extern uint8_t GSyclCICDStreamID;
+// Global variable used to store the SYCL Memory Allocation event
 extern xpti::trace_event_data_t *GMemAllocEvent;
+// Global variable used to store the SYCL CICD event
+extern xpti::trace_event_data_t *GSyclCICDEvent;
+// Global variable used to store the SYCL Graph event
 extern xpti::trace_event_data_t *GSYCLGraphEvent;
 
 // We will pick a global constant so that the pointer in TLS never goes stale
@@ -51,34 +70,56 @@ constexpr uint32_t GMinVer = __LIBSYCL_MINOR_VERSION;
 constexpr const char *GVerStr = SYCL_VERSION_STR;
 #endif
 
-// Stream name being used to notify about buffer objects.
-inline constexpr const char *SYCL_BUFFER_STREAM_NAME =
-    "sycl.experimental.buffer";
-
-// Stream name being used to notify about image objects.
-inline constexpr const char *SYCL_IMAGE_STREAM_NAME = "sycl.experimental.image";
-
 class XPTIRegistry {
 public:
   void initializeFrameworkOnce() {
 #ifdef XPTI_ENABLE_INSTRUMENTATION
     std::call_once(MInitialized, [this] {
       xptiFrameworkInitialize();
+      uint64_t InstanceNo;
+
+      // Registers a new stream for 'sycl' and any application that wants to
+      // listen to this stream will register itself using this string or stream
+      // ID for this string.
+      GSyclStreamID = xptiRegisterStream(SYCL_STREAM_NAME);
+      // Let all tool applications know that a stream by the name of 'sycl' has
+      // been initialized and will be generating the trace stream.
+      this->initializeStream(SYCL_STREAM_NAME, GMajVer, GMinVer, GVerStr);
+      // SYCL CICD events
+      GSyclCICDStreamID = xptiRegisterStream(SYCL_CICD_STREAM_NAME);
+      this->initializeStream(SYCL_CICD_STREAM_NAME, GMajVer, GMinVer, GVerStr);
+      xpti::payload_t CICDPayload("CI/CD");
+      GSyclCICDEvent =
+          xptiMakeEvent("CI/CD", &CICDPayload, xpti::trace_algorithm_event,
+                        xpti_at::active, &InstanceNo);
       // SYCL buffer events
       GBufferStreamID = xptiRegisterStream(SYCL_BUFFER_STREAM_NAME);
-      this->initializeStream(SYCL_BUFFER_STREAM_NAME, 0, 1, "0.1");
+      this->initializeStream(SYCL_BUFFER_STREAM_NAME, GMajVer, GMinVer,
+                             GVerStr);
       // SYCL image events
       GImageStreamID = xptiRegisterStream(SYCL_IMAGE_STREAM_NAME);
-      this->initializeStream(SYCL_IMAGE_STREAM_NAME, 0, 1, "0.1");
+      this->initializeStream(SYCL_IMAGE_STREAM_NAME, GMajVer, GMinVer, GVerStr);
 
       // Memory allocation events
       GMemAllocStreamID = xptiRegisterStream(SYCL_MEM_ALLOC_STREAM_NAME);
-      this->initializeStream(SYCL_MEM_ALLOC_STREAM_NAME, 0, 1, "0.1");
+      this->initializeStream(SYCL_MEM_ALLOC_STREAM_NAME, GMajVer, GMinVer,
+                             GVerStr);
       xpti::payload_t MAPayload("SYCL Memory Allocations Layer");
-      uint64_t MAInstanceNo = 0;
       GMemAllocEvent = xptiMakeEvent("SYCL Memory Allocations", &MAPayload,
                                      xpti::trace_algorithm_event,
-                                     xpti_at::active, &MAInstanceNo);
+                                     xpti_at::active, &InstanceNo);
+
+      // Create a tracepoint to indicate the graph creation
+      xpti::payload_t GraphPayload("application_graph");
+      GSYCLGraphEvent =
+          xptiMakeEvent("application_graph", &GraphPayload,
+                        xpti::trace_graph_event, xpti_at::active, &InstanceNo);
+      if (GSYCLGraphEvent) {
+        // The graph event is a global event and will be used as the parent for
+        // all nodes (command groups)
+        xptiNotifySubscribers(GSyclStreamID, xpti::trace_graph_create, nullptr,
+                              GSYCLGraphEvent, InstanceNo, nullptr);
+      }
     });
 #endif
   }
@@ -312,10 +353,52 @@ private:
   // The trace type information for scoped notifications
   uint16_t MTraceType;
 }; // class XPTIScope
+
+class XPTIScopeCICD {
+public:
+  XPTIScopeCICD(const char *UserData, uint8_t StreamID = GSyclCICDStreamID,
+                uint16_t TraceType = (uint16_t)
+                    xpti::trace_point_type_t::function_begin,
+                xpti::trace_event_data_t *Event = GSyclCICDEvent)
+      : MUserData(UserData), MStreamID(StreamID), MTraceType(TraceType),
+        MEvent(Event), MCorrelationID(0), MScopedNotify(true) {
+    if (xptiCheckTraceEnabled(MStreamID, TraceType)) {
+      MCorrelationID = xptiGetUniqueId();
+      xptiNotifySubscribers(GSyclCICDStreamID, TraceType, MEvent, nullptr,
+                            MCorrelationID,
+                            static_cast<const void *>(MUserData));
+    }
+  }
+
+  ~XPTIScopeCICD() {
+    if (MScopedNotify) {
+      MTraceType = MTraceType | 1;
+      xptiNotifySubscribers(GSyclCICDStreamID, MTraceType, MEvent, nullptr,
+                            MCorrelationID,
+                            static_cast<const void *>(MUserData));
+    }
+  }
+
+private:
+  const char *MUserData;
+  uint8_t MStreamID;
+  uint16_t MTraceType;
+  xpti::trace_event_data_t *MEvent;
+  uint64_t MCorrelationID;
+  bool MScopedNotify;
+}; // class XPTIScopeCICD
 #endif
 
 class queue_impl;
 std::string queueDeviceToString(const detail::queue_impl *const &Queue);
+
+#if XPTI_ENABLE_INSTRUMENTATION
+#define XPTI_CICD_TRACE() detail::XPTIScopeCICD CITrace(__builtin_FUNCTION())
+#define XPTI_CICD_TRACE_A(a) detail::XPTIScopeCICD CITrace(a)
+#else
+#define XPTI_CICD_TRACE()
+#define XPTI_CICD_TRACE_A(a)
+#endif
 
 } // namespace detail
 } // namespace _V1

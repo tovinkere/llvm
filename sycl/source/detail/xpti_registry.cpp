@@ -18,6 +18,25 @@ namespace sycl {
 inline namespace _V1 {
 namespace detail {
 #ifdef XPTI_ENABLE_INSTRUMENTATION
+// Stream ID for generating buffer events
+uint8_t GBufferStreamID = 0;
+// Stream ID for generating image events
+uint8_t GImageStreamID = 0;
+// Stream ID for generating CI/CD events for catching regressions
+uint8_t GSyclCICDStreamID = 0;
+// Stream ID for generating SYCL construct events
+uint8_t GSyclStreamID = 0;
+// Stream ID for generating memory events
+uint8_t GMemAllocStreamID;
+
+// Global (to the SYCL runtime) graph handle that all command groups are a
+// child of Event to be used by graph related activities
+xpti_td *GSYCLGraphEvent = nullptr;
+/// Event to be used by memory allocation activities
+xpti_td *GMemAllocEvent = nullptr;
+/// Event to be used by CICD activities
+xpti_td *GSyclCICDEvent = nullptr;
+
 xpti::trace_event_data_t *XPTIRegistry::createTraceEvent(
     const void *Obj, const void *FuncPtr, uint64_t &IId,
     const detail::code_location &CodeLoc, uint16_t TraceEventType) {

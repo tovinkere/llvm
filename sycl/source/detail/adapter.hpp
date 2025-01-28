@@ -10,6 +10,7 @@
 
 #include <detail/config.hpp>
 #include <detail/ur.hpp>
+#include <detail/xpti_registry.hpp>
 #include <sycl/detail/common.hpp>
 #include <sycl/detail/iostream_proxy.hpp>
 #include <sycl/detail/type_traits.hpp>
@@ -127,6 +128,7 @@ public:
     ur_result_t R = UR_RESULT_SUCCESS;
     if (!adapterReleased) {
       detail::UrFuncInfo<UrApiOffset> UrApiInfo;
+      XPTI_CICD_TRACE_A(UrApiInfo.getFuncName());
       auto F = UrApiInfo.getFuncPtr(&UrFuncPtrs);
       R = F(Args...);
     }

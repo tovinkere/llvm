@@ -18,9 +18,7 @@
 namespace sycl {
 inline namespace _V1 {
 namespace detail {
-#ifdef XPTI_ENABLE_INSTRUMENTATION
-uint8_t GBufferStreamID;
-#endif
+
 void *buffer_impl::allocateMem(ContextImplPtr Context, bool InitFromUserData,
                                void *HostPtr,
                                ur_event_handle_t &OutEventToWait) {
