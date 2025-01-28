@@ -1,7 +1,7 @@
-# commit f058cb230c65fe8094f74043d0c9afd5ba0e8325
-# Merge: 871061f1 3bf76246
+# commit 78e1b33271d28d26845a4bfae7ae3b72c14e0e63
+# Merge: 902bb2e2 94b32ac2
 # Author: Ross Brunton <ross@codeplay.com>
-# Date:   Tue Jan 21 15:49:41 2025 +0000
-#     Merge pull request #2593 from RossBrunton/ross/formatall
-#     Ensure all files are clang formatted
-set(UNIFIED_RUNTIME_TAG f058cb230c65fe8094f74043d0c9afd5ba0e8325)
+# Date:   Tue Jan 28 11:02:44 2025 +0000
+#     Merge pull request #2624 from RossBrunton/ross/msanfix
+#     Assert that Device is valid for memory poisoning
+set(UNIFIED_RUNTIME_TAG 78e1b33271d28d26845a4bfae7ae3b72c14e0e63)
